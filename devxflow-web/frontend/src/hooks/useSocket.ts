@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { io, Socket } from 'socket.io-client'
+import { SOCKET_URL } from '../config/api'
 
 interface ChatMessage {
   id: string
@@ -33,7 +34,7 @@ export function useSocket({
   userId,
   role,
   customerId,
-  serverUrl = 'http://localhost:5000'
+  serverUrl = SOCKET_URL
 }: UseSocketOptions): UseSocketReturn {
   const [socket, setSocket] = useState<Socket | null>(null)
   const [isConnected, setIsConnected] = useState(false)

@@ -6,7 +6,7 @@ const auth = require('./auth');
 const router = express.Router();
 
 // Generate a new license key (admin only)
-router.post('/generate', auth.verifyToken, async (req, res) => {
+router.post('/generate', auth.verifyToken, auth.isAdmin, async (req, res) => {
     try {
         const { customer_email, expires_days = 365, max_activations = 3 } = req.body;
 

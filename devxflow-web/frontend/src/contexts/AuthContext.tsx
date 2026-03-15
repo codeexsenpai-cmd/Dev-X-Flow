@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { API_BASE_URL } from '../config/api'
 
 interface Customer {
   id: string
@@ -35,8 +36,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-const API_BASE = 'http://localhost:5000/api'
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [customer, setCustomer] = useState<Customer | null>(null)
   const [token, setToken] = useState<string | null>(null)
@@ -61,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await fetch(`${API_BASE}/customers/login`, {
+      const response = await fetch(`${API_BASE_URL}/customers/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
@@ -86,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = async (name: string, email: string, password: string) => {
     try {
-      const response = await fetch(`${API_BASE}/customers/register`, {
+      const response = await fetch(`${API_BASE_URL}/customers/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password })
@@ -131,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!token) return
 
     try {
-      const response = await fetch(`${API_BASE}/customers/me`, {
+      const response = await fetch(`${API_BASE_URL}/customers/me`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

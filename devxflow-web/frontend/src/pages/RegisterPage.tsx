@@ -1,7 +1,9 @@
 import { useState, FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { API_BASE_URL } from '../config/api'
 
 export function RegisterPage() {
+  const navigate = useNavigate()
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -30,10 +32,31 @@ export function RegisterPage() {
     }
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      const response = await fetch(`${API_BASE_URL}/customers/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password
+        })
+      })
       
-      console.log('Registration attempted with:', formData)
+      const data = await response.json()
+      
+      if (!response.ok) {
+        setError(data.error || 'Registration failed')
+        return
+      }
+      
+      // Auto-login after successful registration
+      if (data.token) {
+        localStorage.setItem('token', data.token)
+        localStorage.setItem('customer', JSON.stringify(data.customer))
+        navigate('/dashboard')
+      }
+      
+      console.log('Registration successful:', data)
       
     } catch (err) {
       setError('Registration failed. Please try again.')

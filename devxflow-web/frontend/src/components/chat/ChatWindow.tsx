@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Send, Image as ImageIcon, X, Loader2 } from 'lucide-react'
+import { Send, Image as ImageIcon, X } from 'lucide-react'
 
 interface ChatMessage {
   id: string
@@ -30,7 +30,6 @@ export function ChatWindow({
   const [inputMessage, setInputMessage] = useState('')
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
-  const [isUploading, setIsUploading] = useState(false)
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -43,13 +42,11 @@ export function ChatWindow({
   const handleSendMessage = () => {
     if (!inputMessage.trim() && !selectedImage) return
     
-    setIsUploading(true)
     onSendMessage(inputMessage.trim(), selectedImage || undefined)
     
     setInputMessage('')
     setSelectedImage(null)
     setImagePreview(null)
-    setIsUploading(false)
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -171,19 +168,16 @@ export function ChatWindow({
           onKeyPress={handleKeyPress}
           placeholder="Type a message..."
           className="chat-input"
-          disabled={!isConnected || isUploading}
+          disabled={!isConnected}
         />
         
         <button
           onClick={handleSendMessage}
-          disabled={(!inputMessage.trim() && !selectedImage) || !isConnected || isUploading}
+          disabled={(!inputMessage.trim() && !selectedImage) || !isConnected}
           className="send-btn"
+          title="Send message"
         >
-          {isUploading ? (
-            <Loader2 size={18} className="spinner" />
-          ) : (
-            <Send size={18} />
-          )}
+          <Send size={18} />
         </button>
       </div>
 

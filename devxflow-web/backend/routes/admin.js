@@ -267,7 +267,7 @@ router.get('/customers', async (req, res) => {
             customers: customers.map(c => ({
                 _id: c._id,
                 email: c.email,
-                full_name: c.full_name,
+                name: c.name,
                 created_at: c.created_at
             }))
         });

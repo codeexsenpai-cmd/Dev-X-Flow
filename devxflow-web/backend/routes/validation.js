@@ -5,7 +5,10 @@ const { models } = require('../database');
 const router = express.Router();
 
 // API key for desktop app (simple authentication)
-const DESKTOP_API_KEY = process.env.DESKTOP_API_KEY || 'devxflow-desktop-key';
+const DESKTOP_API_KEY = process.env.DESKTOP_API_KEY || (process.env.NODE_ENV === 'development' ? 'dev-api-key-please-change-in-production' : null);
+if (!DESKTOP_API_KEY) {
+    console.error('[SECURITY] DESKTOP_API_KEY not set in environment - validation endpoint disabled');
+}
 
 // Middleware to verify desktop app API key
 const verifyApiKey = (req, res, next) => {

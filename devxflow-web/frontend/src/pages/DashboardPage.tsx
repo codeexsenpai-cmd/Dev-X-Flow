@@ -2,9 +2,8 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Navbar } from '../components/common/Navbar'
 import { useAuth } from '../contexts/AuthContext'
+import { API_BASE_URL } from '../config/api'
 import { GitBranch, FolderGit2, Rocket, RefreshCw, Plus, Sparkles, Bug, Clock, Activity as ActivityIcon, Settings, ExternalLink } from 'lucide-react'
-
-const API_BASE = 'http://localhost:5000/api'
 
 export function DashboardPage() {
   const { customer, token } = useAuth()
@@ -42,7 +41,7 @@ export function DashboardPage() {
     setIsLoading(true)
     try {
       // Load real data from backend
-      const res = await fetch(`${API_BASE}/customers/dashboard`, {
+      const res = await fetch(`${API_BASE_URL}/customers/dashboard`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       const data = await res.json()

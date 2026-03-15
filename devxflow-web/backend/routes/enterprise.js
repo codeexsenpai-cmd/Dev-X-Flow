@@ -6,13 +6,20 @@ const axios = require('axios');
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'devxflow-secret-key-change-in-production';
 
-// EmailJS configuration
-const EMAILJS_SERVICE_ID = 'service_uancg1j';
-const EMAILJS_TEMPLATE_ID = 'template_9qsanyf';
-const EMAILJS_PUBLIC_KEY = 'prslQVSP7JtsOzycN';
+// EmailJS configuration (from environment variables)
+const EMAILJS_SERVICE_ID = process.env.EMAILJS_SERVICE_ID || '';
+const EMAILJS_TEMPLATE_ID = process.env.EMAILJS_TEMPLATE_ID || '';
+const EMAILJS_PUBLIC_KEY = process.env.EMAILJS_PUBLIC_KEY || '';
 
 // Send invitation email via EmailJS REST API
 async function sendInvitationEmail(toEmail, adminName, seats) {
+    // Validate env vars before attempting to send
+    if (!EMAILJS_SERVICE_ID || !EMAILJS_TEMPLATE_ID || !EMAILJS_PUBLIC_KEY) {
+        console.warn('[EmailJS] Missing configuration - skipping invitation email to', toEmail);
+        console.warn('[EmailJS] Required: EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, EMAILJS_PUBLIC_KEY');
+        return null;
+    }
+    
     try {
         const response = await axios.post('https://api.emailjs.com/api/v1.0/email/send', {
             service_id: EMAILJS_SERVICE_ID,

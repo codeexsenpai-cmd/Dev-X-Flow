@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const { models } = require('../database');
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'devxflow-customer-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET || 'devxflow-secret-key-change-in-production';
 
 // Customer registration
 router.post('/register', async (req, res) => {

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { API_BASE_URL } from '../../config/api'
 
 interface Stats {
   totalLicenses: number
@@ -20,7 +21,7 @@ export function AdminDashboard() {
   const fetchStats = async () => {
     try {
       const token = localStorage.getItem('adminToken')
-      const res = await fetch('http://localhost:5000/api/admin/stats', {
+      const res = await fetch(`${API_BASE_URL}/admin/stats`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       const data = await res.json()

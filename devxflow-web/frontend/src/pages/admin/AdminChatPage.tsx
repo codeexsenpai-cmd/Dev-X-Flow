@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSocket } from '../../hooks/useSocket'
 import { ChatWindow } from '../../components/chat/ChatWindow'
 import { Menu, X, MessageSquare } from 'lucide-react'
+import { API_BASE_URL } from '../../config/api'
 
 interface Customer {
   _id: string
@@ -37,7 +38,7 @@ export function AdminChatPage() {
     const fetchCustomers = async () => {
       try {
         const token = localStorage.getItem('adminToken')
-        const res = await fetch('http://localhost:5000/api/admin/customers', {
+        const res = await fetch(`${API_BASE_URL}/admin/customers`, {
           headers: { Authorization: `Bearer ${token}` }
         })
         const data = await res.json()

@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { Navbar } from '../../components/common/Navbar'
-import { User, Key, Shield, Settings as SettingsIcon, Plus, Trash2, Check, X, Eye, EyeOff } from 'lucide-react'
-
-const API_BASE = 'http://localhost:5000/api'
+import { User, Key, Shield, Settings as SettingsIcon } from 'lucide-react'
+import { API_BASE_URL } from '../../config/api'
 
 const PROVIDERS = [
   { id: 'openai', name: 'OpenAI', placeholder: 'sk-...' },
@@ -48,7 +46,7 @@ export function SettingsPage() {
   const loadApiKeys = async () => {
     if (!token) return
     try {
-      const res = await fetch(`${API_BASE}/customer/api-keys`, {
+      const res = await fetch(`${API_BASE_URL}/customer/api-keys`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       const data = await res.json()
@@ -66,7 +64,7 @@ export function SettingsPage() {
     setSuccess('')
     
     try {
-      const res = await fetch(`${API_BASE}/customers/profile`, {
+      const res = await fetch(`${API_BASE_URL}/customers/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -102,7 +100,7 @@ export function SettingsPage() {
     setError('')
     
     try {
-      const res = await fetch(`${API_BASE}/customer/api-keys`, {
+      const res = await fetch(`${API_BASE_URL}/customer/api-keys`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -133,7 +131,7 @@ export function SettingsPage() {
     setError('')
     
     try {
-      const res = await fetch(`${API_BASE}/customer/api-keys/test`, {
+      const res = await fetch(`${API_BASE_URL}/customer/api-keys/test`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -159,7 +157,7 @@ export function SettingsPage() {
     if (!confirm(`Remove ${providerId} API key?`)) return
     
     try {
-      const res = await fetch(`${API_BASE}/customer/api-keys/${providerId}`, {
+      const res = await fetch(`${API_BASE_URL}/customer/api-keys/${providerId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       })

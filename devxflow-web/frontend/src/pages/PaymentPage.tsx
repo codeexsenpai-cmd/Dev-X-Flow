@@ -7,7 +7,7 @@ export function PaymentPage() {
   const navigate = useNavigate()
   const planParam = searchParams.get('plan')
   const billingParam = searchParams.get('billing') || 'monthly'
-  const [billing, setBilling] = useState<'monthly' | 'yearly'>(billingParam as 'monthly' | 'yearly')
+  const billing = billingParam as 'monthly' | 'yearly'
   const isPreSelected = !!planParam && planParam !== 'enterprise'
   const [selectedPlan, setSelectedPlan] = useState(() => {
     if (planParam === 'enterprise') {

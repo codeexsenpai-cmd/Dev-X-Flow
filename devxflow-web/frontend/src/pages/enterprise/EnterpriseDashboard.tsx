@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react'
 import { Navbar } from '../../components/common/Navbar'
 import { useAuth } from '../../contexts/AuthContext'
 import { Users, Mail, Trash2, UserPlus, Key, Calendar, CheckCircle, Clock } from 'lucide-react'
-
-const API_BASE = 'http://localhost:5000/api'
+import { API_BASE_URL } from '../../config/api'
 
 interface TeamMember {
   email: string
@@ -42,7 +41,7 @@ export function EnterpriseDashboard() {
     if (!token) return
     setIsLoading(true)
     try {
-      const res = await fetch(`${API_BASE}/enterprise/license`, {
+      const res = await fetch(`${API_BASE_URL}/enterprise/license`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       const data = await res.json()
@@ -77,7 +76,7 @@ export function EnterpriseDashboard() {
     setSuccess('')
 
     try {
-      const res = await fetch(`${API_BASE}/enterprise/team/add`, {
+      const res = await fetch(`${API_BASE_URL}/enterprise/team/add`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -106,7 +105,7 @@ export function EnterpriseDashboard() {
     if (!confirm(`Remove ${email} from your team?`)) return
 
     try {
-      const res = await fetch(`${API_BASE}/enterprise/team/remove`, {
+      const res = await fetch(`${API_BASE_URL}/enterprise/team/remove`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

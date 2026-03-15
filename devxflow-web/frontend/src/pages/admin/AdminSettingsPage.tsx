@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { API_BASE_URL } from '../../config/api'
 
 interface AIConfig {
   // Multiple API keys for auto-fallback
@@ -65,7 +66,7 @@ export function AdminSettingsPage() {
   const fetchConfig = async () => {
     try {
       const token = localStorage.getItem('adminToken')
-      const res = await fetch('http://localhost:5000/api/admin/ai-config', {
+      const res = await fetch(`${API_BASE_URL}/admin/ai-config`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       const data = await res.json()
@@ -84,7 +85,7 @@ export function AdminSettingsPage() {
     setMessage('')
     try {
       const token = localStorage.getItem('adminToken')
-      const res = await fetch('http://localhost:5000/api/admin/ai-config', {
+      const res = await fetch(`${API_BASE_URL}/admin/ai-config`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { API_BASE_URL } from '../../config/api'
 
 interface Payment {
   _id: string
@@ -32,7 +33,7 @@ export function AdminPaymentsPage() {
   const fetchPayments = async () => {
     try {
       const token = localStorage.getItem('adminToken')
-      const res = await fetch(`http://localhost:5000/api/payment/admin/all?status=${filter}&limit=100`, {
+      const res = await fetch(`${API_BASE_URL}/payment/admin/all?status=${filter}&limit=100`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       const data = await res.json()
@@ -49,7 +50,7 @@ export function AdminPaymentsPage() {
   const handleVerify = async (paymentId: string) => {
     try {
       const token = localStorage.getItem('adminToken')
-      const res = await fetch(`http://localhost:5000/api/payment/admin/verify/${paymentId}`, {
+      const res = await fetch(`${API_BASE_URL}/payment/admin/verify/${paymentId}`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       })
@@ -67,7 +68,7 @@ export function AdminPaymentsPage() {
     if (!confirm('Are you sure you want to reject this payment?')) return
     try {
       const token = localStorage.getItem('adminToken')
-      await fetch(`http://localhost:5000/api/payment/admin/reject/${paymentId}`, {
+      await fetch(`${API_BASE_URL}/payment/admin/reject/${paymentId}`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       })

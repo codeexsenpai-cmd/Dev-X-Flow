@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { API_BASE_URL } from '../../config/api'
 
 interface License {
   _id: string
@@ -23,7 +24,7 @@ export function AdminLicensesPage() {
   const fetchLicenses = async () => {
     try {
       const token = localStorage.getItem('adminToken')
-      const res = await fetch('http://localhost:5000/api/admin/search?q=' + searchQuery, {
+      const res = await fetch(`${API_BASE_URL}/admin/search?q=${searchQuery}`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       const data = await res.json()
@@ -46,7 +47,7 @@ export function AdminLicensesPage() {
     if (!confirm('Are you sure you want to revoke this license?')) return
     try {
       const token = localStorage.getItem('adminToken')
-      await fetch(`http://localhost:5000/api/admin/license/${id}`, {
+      await fetch(`${API_BASE_URL}/admin/license/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       })

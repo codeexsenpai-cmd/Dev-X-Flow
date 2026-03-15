@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { API_BASE_URL } from '../../config/api'
 
 interface Message {
   _id: string
@@ -24,7 +25,7 @@ export function AdminMessagesPage() {
   const fetchMessages = async () => {
     try {
       const token = localStorage.getItem('adminToken')
-      const res = await fetch('http://localhost:5000/api/messages', {
+      const res = await fetch(`${API_BASE_URL}/messages`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       const data = await res.json()
@@ -42,7 +43,7 @@ export function AdminMessagesPage() {
     if (!reply.trim()) return
     try {
       const token = localStorage.getItem('adminToken')
-      await fetch(`http://localhost:5000/api/messages/${messageId}/reply`, {
+      await fetch(`${API_BASE_URL}/messages/${messageId}/reply`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

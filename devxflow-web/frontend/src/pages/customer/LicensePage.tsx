@@ -3,8 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { Navbar } from '../../components/common/Navbar'
 import { Key, Monitor, Calendar, Check, X, Zap, CreditCard } from 'lucide-react'
-
-const API_BASE = 'http://localhost:5000/api'
+import { API_BASE_URL } from '../../config/api'
 
 export function LicensePage() {
   const { token } = useAuth()
@@ -47,7 +46,7 @@ export function LicensePage() {
     if (!token) return
     setIsLoading(true)
     try {
-      const res = await fetch(`${API_BASE}/customer/license/status`, {
+      const res = await fetch(`${API_BASE_URL}/customer/license/status`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       const data = await res.json()
@@ -78,7 +77,7 @@ export function LicensePage() {
     setSuccess('')
 
     try {
-      const res = await fetch(`${API_BASE}/customer/license/activate`, {
+      const res = await fetch(`${API_BASE_URL}/customer/license/activate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -113,7 +112,7 @@ export function LicensePage() {
     setIsLoading(true)
     setError('')
     try {
-      const res = await fetch(`${API_BASE}/customer/license/trial/start`, {
+      const res = await fetch(`${API_BASE_URL}/customer/license/trial/start`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -144,7 +143,7 @@ export function LicensePage() {
     if (!confirm('Deactivate this device? You can reactivate it later.')) return
 
     try {
-      const res = await fetch(`${API_BASE}/customer/license/device/${deviceId}`, {
+      const res = await fetch(`${API_BASE_URL}/customer/license/device/${deviceId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       })

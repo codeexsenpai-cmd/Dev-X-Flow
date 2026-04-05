@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 
 interface UpgradePromptProps {
   feature: string
@@ -7,6 +7,7 @@ interface UpgradePromptProps {
   isOpen: boolean
   onClose: () => void
   onUpgrade: () => void
+  billing?: 'monthly' | 'yearly'
 }
 
 const TIER_NAMES: Record<string, string> = {
@@ -15,10 +16,25 @@ const TIER_NAMES: Record<string, string> = {
   teams: 'Teams'
 }
 
-const TIER_PRICES: Record<string, string> = {
-  pro: '₱399/year',
-  pro_plus: '₱599/year',
-  teams: '₱1,999/year'
+const TIER_PRICES: Record<string, { monthly: string; yearly: string; monthlyDisplay: string; yearlyDisplay: string }> = {
+  pro: { 
+    monthly: '₱199/mo', 
+    yearly: '₱125/mo',
+    monthlyDisplay: '₱199/mo (billed monthly)',
+    yearlyDisplay: '₱1,499/year (₱125/mo)'
+  },
+  pro_plus: { 
+    monthly: '₱299/mo', 
+    yearly: '₱208/mo',
+    monthlyDisplay: '₱299/mo (billed monthly)',
+    yearlyDisplay: '₱2,499/year (₱208/mo)'
+  },
+  teams: { 
+    monthly: '₱599/mo', 
+    yearly: '₱417/mo',
+    monthlyDisplay: '₱599/mo (billed monthly)',
+    yearlyDisplay: '₱4,999/year (₱417/mo)'
+  }
 }
 
 const FEATURE_BENEFITS: Record<string, string[]> = {
@@ -80,11 +96,15 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
   requiredTier,
   isOpen,
   onClose,
-  onUpgrade
+  onUpgrade,
+  billing: initialBilling = 'yearly'
 }) => {
+  const [billing, setBilling] = useState<'monthly' | 'yearly'>(initialBilling)
+  
   if (!isOpen) return null
 
   const benefits = FEATURE_BENEFITS[feature] || FEATURE_BENEFITS.default
+  const priceInfo = TIER_PRICES[requiredTier]
 
   return (
     <div className="license-modal-overlay" onClick={onClose}>
@@ -111,8 +131,24 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
           </ul>
         </div>
 
+        {/* Billing Toggle */}
+        <div className="billing-toggle">
+          <button
+            className={`toggle-btn ${billing === 'monthly' ? 'active' : ''}`}
+            onClick={() => setBilling('monthly')}
+          >
+            Monthly
+          </button>
+          <button
+            className={`toggle-btn ${billing === 'yearly' ? 'active' : ''}`}
+            onClick={() => setBilling('yearly')}
+          >
+            Yearly <span className="save-badge">Save 40%</span>
+          </button>
+        </div>
+
         <div className="upgrade-pricing">
-          <div className="price-tag">{TIER_PRICES[requiredTier]}</div>
+          <div className="price-tag">{billing === 'monthly' ? priceInfo.monthlyDisplay : priceInfo.yearlyDisplay}</div>
           <p className="price-note">Cancel anytime. 30-day money-back guarantee.</p>
         </div>
 

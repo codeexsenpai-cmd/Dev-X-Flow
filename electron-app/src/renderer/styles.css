@@ -3176,4 +3176,39 @@ select.commit-input:-moz-focusring {
   color: #000;
 }
 
+/* Billing Toggle Styles */
+.billing-toggle {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.toggle-btn {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #333;
+  background: transparent;
+  color: #888;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toggle-btn.active {
+  border-color: var(--accent);
+  background: rgba(0, 212, 255, 0.15);
+  color: var(--accent);
+}
+
+.toggle-btn:hover:not(.active) {
+  border-color: rgba(0, 212, 255, 0.5);
+  color: #aaa;
+}
+
+.save-badge {
+  font-size: 10px;
+  color: #4ade80;
+  margin-left: 4px;
+}
+
 

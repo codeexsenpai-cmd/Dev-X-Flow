@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { Navbar } from '../components/common/Navbar'
+import { API_BASE_URL } from '../config/api'
 
 export function PaymentPage() {
   const [searchParams] = useSearchParams()
@@ -112,7 +113,7 @@ export function PaymentPage() {
   useEffect(() => {
     const fetchQR = async () => {
       try {
-        const res = await fetch('/api/payment/qr')
+        const res = await fetch(`${API_BASE_URL}/payment/qr`)
         const data = await res.json()
         if (data.success) {
           setQrUrl(data.qr_url)
@@ -164,7 +165,7 @@ export function PaymentPage() {
       submitData.append('gcash_ref', formData.gcashRef)
       submitData.append('screenshot', screenshot)
 
-      const res = await fetch('/api/payment/submit-proof', {
+      const res = await fetch(`${API_BASE_URL}/payment/submit-proof`, {
         method: 'POST',
         body: submitData
       })

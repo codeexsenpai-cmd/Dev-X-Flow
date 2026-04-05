@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { Navbar } from '../components/common/Navbar'
 import { useAuth } from '../contexts/AuthContext'
 import { API_BASE_URL } from '../config/api'
-import { GitBranch, FolderGit2, Rocket, RefreshCw, Plus, Sparkles, Bug, Clock, Activity as ActivityIcon, Settings, ExternalLink } from 'lucide-react'
+import { GitBranch, FolderGit2, Rocket, RefreshCw, Plus, Sparkles, Bug, Clock, Activity as ActivityIcon, Settings, ExternalLink, Monitor, Trash2 } from 'lucide-react'
 
 export function DashboardPage() {
   const { customer, token } = useAuth()
@@ -15,6 +15,20 @@ export function DashboardPage() {
     activeProjects: 0,
     lastSync: 'Never'
   })
+
+  const [devices, setDevices] = useState<Array<{
+    id: string
+    name: string
+    activated_at: string
+    last_seen: string
+  }>>([])
+
+  const [licenseInfo, setLicenseInfo] = useState<{
+    has_license: boolean
+    tier?: string
+    max_activations?: number
+    current_activations?: number
+  }>({ has_license: false })
 
   const [recentActivity, setRecentActivity] = useState<Array<{
     id: number
@@ -34,7 +48,50 @@ export function DashboardPage() {
 
   useEffect(() => {
     loadDashboardData()
+    loadLicenseData()
   }, [token])
+
+  const loadLicenseData = async () => {
+    if (!token) return
+    try {
+      const res = await fetch(`${API_BASE_URL}/customer/license/status`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      const data = await res.json()
+      if (data.success) {
+        setLicenseInfo({
+          has_license: data.has_license,
+          tier: data.license?.tier,
+          max_activations: data.license?.max_activations,
+          current_activations: data.license?.current_activations
+        })
+        setDevices(data.devices || [])
+      }
+    } catch (e) {
+      console.error('Failed to load license data:', e)
+    }
+  }
+
+  const handleDeactivateDevice = async (deviceId: string) => {
+    if (!token) return
+    if (!confirm('Are you sure you want to deactivate this device?')) return
+    
+    try {
+      const res = await fetch(`${API_BASE_URL}/customer/license/device/${deviceId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      const data = await res.json()
+      if (data.success) {
+        setDevices(devices.filter(d => d.id !== deviceId))
+        loadLicenseData() // Refresh
+      } else {
+        alert(data.error || 'Failed to deactivate device')
+      }
+    } catch (e) {
+      alert('Failed to deactivate device')
+    }
+  }
 
   const loadDashboardData = async () => {
     if (!token) return
@@ -142,6 +199,12 @@ export function DashboardPage() {
           >
             <Clock size={18} /> Activity
           </button>
+          <button 
+            className={`tab-btn ${activeTab === 'devices' ? 'active' : ''}`}
+            onClick={() => setActiveTab('devices')}
+          >
+            <Monitor size={18} /> Devices
+          </button>
         </div>
 
         {/* Tab Content */}
@@ -246,6 +309,58 @@ export function DashboardPage() {
                           <Settings size={14} />
                         </Link>
                       </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'devices' && (
+            <div className="devices-content">
+              <div className="section-header">
+                <h2>Activated Devices</h2>
+                {licenseInfo.has_license && (
+                  <span className="activation-count">
+                    {licenseInfo.current_activations} / {licenseInfo.max_activations} devices
+                  </span>
+                )}
+              </div>
+              
+              {!licenseInfo.has_license ? (
+                <div className="empty-state">
+                  <Monitor size={48} />
+                  <p>No active license</p>
+                  <span>Purchase a license to activate devices</span>
+                </div>
+              ) : devices.length === 0 ? (
+                <div className="empty-state">
+                  <Monitor size={48} />
+                  <p>No devices activated</p>
+                  <span>Open the desktop app and activate your license</span>
+                </div>
+              ) : (
+                <div className="devices-list">
+                  {devices.map(device => (
+                    <div key={device.id} className="device-card">
+                      <div className="device-icon">
+                        <Monitor size={24} />
+                      </div>
+                      <div className="device-info">
+                        <span className="device-name">{device.name}</span>
+                        <span className="device-id">ID: {device.id.substring(0, 8)}...</span>
+                        <div className="device-meta">
+                          <span>Activated: {new Date(device.activated_at).toLocaleDateString()}</span>
+                          <span>Last seen: {new Date(device.last_seen).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                      <button 
+                        className="btn-danger btn-sm"
+                        onClick={() => handleDeactivateDevice(device.id)}
+                        title="Deactivate this device"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </div>
                   ))}
                 </div>

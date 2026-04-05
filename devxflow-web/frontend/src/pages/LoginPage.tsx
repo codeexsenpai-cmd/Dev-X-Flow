@@ -1,5 +1,5 @@
 import { useState, FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { API_BASE_URL } from '../config/api'
 
 export function LoginPage() {
@@ -8,6 +8,11 @@ export function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  
+  // Check if this is an Electron app login request
+  const redirectUrl = searchParams.get('redirect')
+  const isElectronClient = searchParams.get('client') === 'electron'
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -34,6 +39,14 @@ export function LoginPage() {
       localStorage.setItem('customer', JSON.stringify(data.customer))
       
       console.log('Login successful:', data)
+      
+      // Handle Electron app deep link redirect
+      if (isElectronClient && redirectUrl) {
+        // Redirect to deep link with token for Electron app
+        window.location.href = `${redirectUrl}?token=${encodeURIComponent(data.token)}`
+        return
+      }
+      
       navigate('/dashboard')
       
     } catch (err: any) {

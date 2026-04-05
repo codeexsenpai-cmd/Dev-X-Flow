@@ -1,7 +1,7 @@
 {
   "name": "devxflow-electron-app",
   "private": true,
-  "version": "0.1.0",
+  "version": "7.1.3",
   "main": "dist-main/main/index.js",
   "scripts": {
     "dev:renderer": "vite --port 5501 --strictPort",

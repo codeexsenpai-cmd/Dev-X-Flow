@@ -6,17 +6,66 @@ const simple_git_1 = require("simple-git");
 const promises_1 = require("node:fs/promises");
 const node_os_1 = require("node:os");
 const node_path_1 = require("node:path");
-async function loadAiConfig() {
-    const filePath = (0, node_path_1.join)((0, node_os_1.homedir)(), '.devxflow_ai_config.json');
-    const raw = await (0, promises_1.readFile)(filePath, 'utf-8');
-    const parsed = JSON.parse(raw);
-    const provider = (parsed.provider || 'openai');
-    const apiKey = String(parsed.apiKey || '').trim();
-    const model = parsed.model;
-    if (!apiKey) {
-        throw new Error('AI API key not configured. Create ~/.devxflow_ai_config.json with { "provider": "openai", "apiKey": "...", "model": "gpt-3.5-turbo" }');
+// Backend API URL - can be configured via environment
+const BACKEND_URL = process.env.DEVXFLOW_BACKEND_URL || 'http://localhost:5000';
+const DESKTOP_API_KEY = process.env.DEVXFLOW_DESKTOP_API_KEY || 'devxflow-desktop-key';
+// Default fallback order
+const DEFAULT_FALLBACK = ['google', 'openai', 'anthropic', 'deepseek', 'mistral', 'cohere', 'xai', 'perplexity', 'kimi', 'qwen', 'chatglm', 'openrouter', 'together', 'groq', 'fireworks', 'ollama', 'azure', 'custom'];
+async function loadMultiKeyConfig() {
+    // Try backend first
+    try {
+        const res = await fetch(`${BACKEND_URL}/api/admin/ai-config/public`, {
+            headers: { 'X-API-Key': DESKTOP_API_KEY }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            if (data.success && data.config) {
+                console.log('[AI] Using multi-key config from backend');
+                return data.config;
+            }
+        }
     }
-    return { provider, apiKey, model };
+    catch (err) {
+        console.warn('[AI] Backend config fetch failed:', err);
+    }
+    // Fallback to local file
+    const filePath = (0, node_path_1.join)((0, node_os_1.homedir)(), '.devxflow_ai_config.json');
+    try {
+        const raw = await (0, promises_1.readFile)(filePath, 'utf-8');
+        const parsed = JSON.parse(raw);
+        console.log('[AI] Using local config file');
+        return parsed;
+    }
+    catch (err) {
+        console.warn('[AI] No config found');
+        return {};
+    }
+}
+// Get API key for a provider
+function getKeyForProvider(config, provider) {
+    const keyMap = {
+        'openai': 'openaiKey',
+        'anthropic': 'anthropicKey',
+        'google': 'googleKey',
+        'mistral': 'mistralKey',
+        'cohere': 'cohereKey',
+        'xai': 'xaiKey',
+        'perplexity': 'perplexityKey',
+        'deepseek': 'deepseekKey',
+        'kimi': 'kimiKey',
+        'qwen': 'qwenKey',
+        'chatglm': 'chatglmKey',
+        'baichuan': 'baichuanKey',
+        'yi': 'yiKey',
+        'openrouter': 'openrouterKey',
+        'together': 'togetherKey',
+        'groq': 'groqKey',
+        'fireworks': 'fireworksKey',
+        'azure': 'azureKey',
+        'custom': 'customKey'
+    };
+    const key = keyMap[provider];
+    return key ? config[key] || null : null;
 }
 function buildPrompt(diffText) {
     return [
@@ -222,30 +271,432 @@ async function callAzureOpenAI(config, prompt) {
         throw new Error('Azure returned empty response');
     return content.split('\n')[0].trim();
 }
+async function callOpenRouter(config, prompt) {
+    const model = config.model || 'openai/gpt-3.5-turbo';
+    const baseUrl = config.baseUrl || 'https://openrouter.ai/api/v1';
+    const res = await fetch(`${baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${config.apiKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://devxflow.app',
+            'X-Title': 'Dev-X-Flow',
+        },
+        body: JSON.stringify({
+            model,
+            messages: [
+                { role: 'system', content: 'You generate git commit messages.' },
+                { role: 'user', content: prompt },
+            ],
+            max_tokens: 60,
+            temperature: 0.3,
+        }),
+    });
+    if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`OpenRouter request failed (${res.status}): ${text}`);
+    }
+    const json = (await res.json());
+    const content = String(json?.choices?.[0]?.message?.content || '').trim();
+    if (!content)
+        throw new Error('OpenRouter returned empty response');
+    return content.split('\n')[0].trim();
+}
+async function callOllama(config, prompt) {
+    const model = config.model || 'llama2';
+    const baseUrl = config.baseUrl || 'http://localhost:11434';
+    const res = await fetch(`${baseUrl}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            model,
+            messages: [
+                { role: 'system', content: 'You generate git commit messages.' },
+                { role: 'user', content: prompt },
+            ],
+            stream: false,
+        }),
+    });
+    if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Ollama request failed (${res.status}): ${text}`);
+    }
+    const json = (await res.json());
+    const content = String(json?.message?.content || '').trim();
+    if (!content)
+        throw new Error('Ollama returned empty response');
+    return content.split('\n')[0].trim();
+}
+async function callCustom(config, prompt) {
+    if (!config.baseUrl) {
+        throw new Error('Custom provider requires baseUrl');
+    }
+    const res = await fetch(`${config.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${config.apiKey}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            model: config.model || 'default',
+            messages: [
+                { role: 'system', content: 'You generate git commit messages.' },
+                { role: 'user', content: prompt },
+            ],
+            max_tokens: 60,
+            temperature: 0.3,
+        }),
+    });
+    if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Custom API request failed (${res.status}): ${text}`);
+    }
+    const json = (await res.json());
+    const content = String(json?.choices?.[0]?.message?.content || '').trim();
+    if (!content)
+        throw new Error('Custom API returned empty response');
+    return content.split('\n')[0].trim();
+}
+// Mistral AI
+async function callMistral(config, prompt) {
+    const model = config.model || 'mistral-small-latest';
+    const res = await fetch('https://api.mistral.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${config.apiKey}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            model,
+            messages: [
+                { role: 'system', content: 'You generate git commit messages.' },
+                { role: 'user', content: prompt },
+            ],
+            max_tokens: 60,
+            temperature: 0.3,
+        }),
+    });
+    if (!res.ok)
+        throw new Error(`Mistral request failed (${res.status})`);
+    const json = (await res.json());
+    const content = String(json?.choices?.[0]?.message?.content || '').trim();
+    if (!content)
+        throw new Error('Mistral returned empty response');
+    return content.split('\n')[0].trim();
+}
+// Cohere
+async function callCohere(config, prompt) {
+    const model = config.model || 'command-r';
+    const res = await fetch('https://api.cohere.ai/v1/chat', {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${config.apiKey}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            model,
+            message: prompt,
+            preamble: 'You generate git commit messages.',
+            max_tokens: 60,
+            temperature: 0.3,
+        }),
+    });
+    if (!res.ok)
+        throw new Error(`Cohere request failed (${res.status})`);
+    const json = (await res.json());
+    const content = String(json?.text || '').trim();
+    if (!content)
+        throw new Error('Cohere returned empty response');
+    return content.split('\n')[0].trim();
+}
+// xAI (Grok)
+async function callXai(config, prompt) {
+    const model = config.model || 'grok-beta';
+    const res = await fetch('https://api.x.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${config.apiKey}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            model,
+            messages: [
+                { role: 'system', content: 'You generate git commit messages.' },
+                { role: 'user', content: prompt },
+            ],
+            max_tokens: 60,
+            temperature: 0.3,
+        }),
+    });
+    if (!res.ok)
+        throw new Error(`xAI request failed (${res.status})`);
+    const json = (await res.json());
+    const content = String(json?.choices?.[0]?.message?.content || '').trim();
+    if (!content)
+        throw new Error('xAI returned empty response');
+    return content.split('\n')[0].trim();
+}
+// Perplexity
+async function callPerplexity(config, prompt) {
+    const model = config.model || 'sonar-small-online';
+    const res = await fetch('https://api.perplexity.ai/chat/completions', {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${config.apiKey}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            model,
+            messages: [
+                { role: 'system', content: 'You generate git commit messages.' },
+                { role: 'user', content: prompt },
+            ],
+            max_tokens: 60,
+            temperature: 0.3,
+        }),
+    });
+    if (!res.ok)
+        throw new Error(`Perplexity request failed (${res.status})`);
+    const json = (await res.json());
+    const content = String(json?.choices?.[0]?.message?.content || '').trim();
+    if (!content)
+        throw new Error('Perplexity returned empty response');
+    return content.split('\n')[0].trim();
+}
+// Qwen (Alibaba)
+async function callQwen(config, prompt) {
+    const model = config.model || 'qwen-turbo';
+    const res = await fetch('https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation', {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${config.apiKey}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            model,
+            input: { messages: [
+                    { role: 'system', content: 'You generate git commit messages.' },
+                    { role: 'user', content: prompt },
+                ] },
+            parameters: { max_tokens: 60, temperature: 0.3 },
+        }),
+    });
+    if (!res.ok)
+        throw new Error(`Qwen request failed (${res.status})`);
+    const json = (await res.json());
+    const content = String(json?.output?.text || '').trim();
+    if (!content)
+        throw new Error('Qwen returned empty response');
+    return content.split('\n')[0].trim();
+}
+// Baichuan
+async function callBaichuan(config, prompt) {
+    const model = config.model || 'Baichuan2-Turbo';
+    const res = await fetch('https://api.baichuan-ai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${config.apiKey}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            model,
+            messages: [
+                { role: 'system', content: 'You generate git commit messages.' },
+                { role: 'user', content: prompt },
+            ],
+            max_tokens: 60,
+            temperature: 0.3,
+        }),
+    });
+    if (!res.ok)
+        throw new Error(`Baichuan request failed (${res.status})`);
+    const json = (await res.json());
+    const content = String(json?.choices?.[0]?.message?.content || '').trim();
+    if (!content)
+        throw new Error('Baichuan returned empty response');
+    return content.split('\n')[0].trim();
+}
+// Yi (01.AI)
+async function callYi(config, prompt) {
+    const model = config.model || 'yi-large';
+    const res = await fetch('https://api.lingyiwanwu.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${config.apiKey}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            model,
+            messages: [
+                { role: 'system', content: 'You generate git commit messages.' },
+                { role: 'user', content: prompt },
+            ],
+            max_tokens: 60,
+            temperature: 0.3,
+        }),
+    });
+    if (!res.ok)
+        throw new Error(`Yi request failed (${res.status})`);
+    const json = (await res.json());
+    const content = String(json?.choices?.[0]?.message?.content || '').trim();
+    if (!content)
+        throw new Error('Yi returned empty response');
+    return content.split('\n')[0].trim();
+}
+// Together AI
+async function callTogether(config, prompt) {
+    const model = config.model || 'meta-llama/Llama-3.3-70B-Instruct-Turbo';
+    const baseUrl = config.baseUrl || 'https://api.together.xyz/v1';
+    const res = await fetch(`${baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${config.apiKey}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            model,
+            messages: [
+                { role: 'system', content: 'You generate git commit messages.' },
+                { role: 'user', content: prompt },
+            ],
+            max_tokens: 60,
+            temperature: 0.3,
+        }),
+    });
+    if (!res.ok)
+        throw new Error(`Together request failed (${res.status})`);
+    const json = (await res.json());
+    const content = String(json?.choices?.[0]?.message?.content || '').trim();
+    if (!content)
+        throw new Error('Together returned empty response');
+    return content.split('\n')[0].trim();
+}
+// Groq
+async function callGroq(config, prompt) {
+    const model = config.model || 'llama-3.3-70b-versatile';
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${config.apiKey}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            model,
+            messages: [
+                { role: 'system', content: 'You generate git commit messages.' },
+                { role: 'user', content: prompt },
+            ],
+            max_tokens: 60,
+            temperature: 0.3,
+        }),
+    });
+    if (!res.ok)
+        throw new Error(`Groq request failed (${res.status})`);
+    const json = (await res.json());
+    const content = String(json?.choices?.[0]?.message?.content || '').trim();
+    if (!content)
+        throw new Error('Groq returned empty response');
+    return content.split('\n')[0].trim();
+}
+// Fireworks AI
+async function callFireworks(config, prompt) {
+    const model = config.model || 'llama-v3p3-70b-instruct';
+    const res = await fetch('https://api.fireworks.ai/inference/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${config.apiKey}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            model,
+            messages: [
+                { role: 'system', content: 'You generate git commit messages.' },
+                { role: 'user', content: prompt },
+            ],
+            max_tokens: 60,
+            temperature: 0.3,
+        }),
+    });
+    if (!res.ok)
+        throw new Error(`Fireworks request failed (${res.status})`);
+    const json = (await res.json());
+    const content = String(json?.choices?.[0]?.message?.content || '').trim();
+    if (!content)
+        throw new Error('Fireworks returned empty response');
+    return content.split('\n')[0].trim();
+}
 function registerAiIpc() {
     electron_1.ipcMain.handle('ai:commit-message', async (_event, repoPath) => {
         if (!repoPath)
             throw new Error('repoPath is required');
-        const config = await loadAiConfig();
+        const multiConfig = await loadMultiKeyConfig();
         const diffText = await getRepoDiff(repoPath);
         const prompt = buildPrompt(diffText);
-        switch (config.provider) {
-            case 'openai':
-                return await callOpenAi(config, prompt);
-            case 'gemini':
-                return await callGemini(config, prompt);
-            case 'anthropic':
-                return await callAnthropic(config, prompt);
-            case 'kimi':
-                return await callKimi(config, prompt);
-            case 'chatglm':
-                return await callChatGLM(config, prompt);
-            case 'deepseek':
-                return await callDeepSeek(config, prompt);
-            case 'azure':
-                return await callAzureOpenAI(config, prompt);
-            default:
-                throw new Error(`Unsupported provider: ${config.provider}`);
+        // Get fallback order
+        const fallbackOrder = multiConfig.fallbackOrder || DEFAULT_FALLBACK;
+        // Try each provider in order
+        const errors = [];
+        for (const provider of fallbackOrder) {
+            const apiKey = getKeyForProvider(multiConfig, provider);
+            if (!apiKey)
+                continue; // Skip providers without keys
+            try {
+                console.log(`[AI] Trying provider: ${provider}`);
+                const config = {
+                    provider: provider,
+                    apiKey,
+                    baseUrl: provider === 'ollama' ? multiConfig.ollamaUrl :
+                        provider === 'custom' ? multiConfig.customUrl : undefined
+                };
+                switch (provider) {
+                    case 'openai':
+                        return await callOpenAi(config, prompt);
+                    case 'google':
+                        return await callGemini(config, prompt);
+                    case 'anthropic':
+                        return await callAnthropic(config, prompt);
+                    case 'mistral':
+                        return await callMistral(config, prompt);
+                    case 'cohere':
+                        return await callCohere(config, prompt);
+                    case 'xai':
+                        return await callXai(config, prompt);
+                    case 'perplexity':
+                        return await callPerplexity(config, prompt);
+                    case 'deepseek':
+                        return await callDeepSeek(config, prompt);
+                    case 'kimi':
+                        return await callKimi(config, prompt);
+                    case 'qwen':
+                        return await callQwen(config, prompt);
+                    case 'chatglm':
+                        return await callChatGLM(config, prompt);
+                    case 'baichuan':
+                        return await callBaichuan(config, prompt);
+                    case 'yi':
+                        return await callYi(config, prompt);
+                    case 'azure':
+                        return await callAzureOpenAI(config, prompt);
+                    case 'openrouter':
+                        return await callOpenRouter(config, prompt);
+                    case 'together':
+                        return await callTogether(config, prompt);
+                    case 'groq':
+                        return await callGroq(config, prompt);
+                    case 'fireworks':
+                        return await callFireworks(config, prompt);
+                    case 'ollama':
+                        return await callOllama(config, prompt);
+                    case 'custom':
+                        return await callCustom(config, prompt);
+                }
+            }
+            catch (err) {
+                const msg = err instanceof Error ? err.message : String(err);
+                console.warn(`[AI] Provider ${provider} failed:`, msg);
+                errors.push(`${provider}: ${msg}`);
+            }
         }
+        throw new Error(`All AI providers failed. Errors: ${errors.join('; ')}`);
     });
 }

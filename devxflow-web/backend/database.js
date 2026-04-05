@@ -97,12 +97,12 @@ const messageSchema = new mongoose.Schema({
 
 // Trial Schema
 const trialSchema = new mongoose.Schema({
-    email: { type: String, required: true },
-    device_fingerprint: { type: String, required: true },
+    device_id: { type: String, required: true, unique: true },
+    email: { type: String },
     device_info: { type: String },
-    trial_ends_at: { type: Date, required: true },
+    started_at: { type: Date, default: Date.now },
+    expires_at: { type: Date, required: true },
     status: { type: String, default: 'active' },
-    created_at: { type: Date, default: Date.now },
     last_validated_at: { type: Date }
 });
 
@@ -155,7 +155,7 @@ const paymentSettingsSchema = new mongoose.Schema({
 });
 
 // Create compound index for trial uniqueness
-trialSchema.index({ email: 1, device_fingerprint: 1 }, { unique: true });
+trialSchema.index({ email: 1, device_id: 1 }, { unique: true });
 activationSchema.index({ license_id: 1, device_id: 1 }, { unique: true });
 
 // Create models

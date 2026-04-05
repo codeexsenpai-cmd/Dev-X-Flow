@@ -246,4 +246,55 @@ electron_1.contextBridge.exposeInMainWorld('devxflow', {
     dbTestConnection: async (config) => {
         return await electron_1.ipcRenderer.invoke('db:test-connection', config);
     },
+    // License IPC APIs
+    licenseCheck: async () => {
+        return await electron_1.ipcRenderer.invoke('license:check');
+    },
+    licenseActivate: async (licenseKey) => {
+        return await electron_1.ipcRenderer.invoke('license:activate', licenseKey);
+    },
+    licenseDeactivate: async () => {
+        return await electron_1.ipcRenderer.invoke('license:deactivate');
+    },
+    licenseGetTier: async () => {
+        return await electron_1.ipcRenderer.invoke('license:get-tier');
+    },
+    licenseCheckFeature: async (feature) => {
+        return await electron_1.ipcRenderer.invoke('license:check-feature', feature);
+    },
+    licenseBuy: async () => {
+        return await electron_1.ipcRenderer.invoke('license:buy');
+    },
+    licenseLogin: async () => {
+        return await electron_1.ipcRenderer.invoke('license:login');
+    },
+    licenseStartTrial: async () => {
+        return await electron_1.ipcRenderer.invoke('license:start-trial');
+    },
+    licenseTrialStatus: async () => {
+        return await electron_1.ipcRenderer.invoke('license:trial-status');
+    },
+    licenseAuthStatus: async () => {
+        return await electron_1.ipcRenderer.invoke('license:auth-status');
+    },
+    onLicenseStatus: (callback) => {
+        const handler = (_event, status) => callback(status);
+        electron_1.ipcRenderer.on('license:status', handler);
+        return () => electron_1.ipcRenderer.removeListener('license:status', handler);
+    },
+    onLicenseExpired: (callback) => {
+        const handler = () => callback();
+        electron_1.ipcRenderer.on('license:expired', handler);
+        return () => electron_1.ipcRenderer.removeListener('license:expired', handler);
+    },
+    onLicenseTrialStarted: (callback) => {
+        const handler = (_event, trial) => callback(trial);
+        electron_1.ipcRenderer.on('license:trial-started', handler);
+        return () => electron_1.ipcRenderer.removeListener('license:trial-started', handler);
+    },
+    onLicenseAuthSuccess: (callback) => {
+        const handler = (_event, status) => callback(status);
+        electron_1.ipcRenderer.on('license:auth-success', handler);
+        return () => electron_1.ipcRenderer.removeListener('license:auth-success', handler);
+    },
 });

@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { Navbar } from '../components/common/Navbar'
 import { API_BASE_URL } from '../config/api'
+import { useAuth } from '../contexts/AuthContext'
 
 export function PaymentPage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const { customer, isAuthenticated, isLoading: authLoading } = useAuth()
   const planParam = searchParams.get('plan')
   const billingParam = searchParams.get('billing') || 'monthly'
   const billing = billingParam as 'monthly' | 'yearly'
@@ -29,6 +31,25 @@ export function PaymentPage() {
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [paymentId, setPaymentId] = useState('')
   const [error, setError] = useState('')
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      const currentPath = window.location.pathname + window.location.search
+      navigate(`/login?redirect=${encodeURIComponent(currentPath)}`)
+    }
+  }, [authLoading, isAuthenticated, navigate])
+
+  // Pre-fill form with user data
+  useEffect(() => {
+    if (customer) {
+      setFormData(prev => ({
+        ...prev,
+        name: customer.name || '',
+        email: customer.email || ''
+      }))
+    }
+  }, [customer])
 
   const plans = [
     {
@@ -200,6 +221,26 @@ export function PaymentPage() {
         </div>
       </div>
     )
+  }
+
+  // Show loading while checking auth
+  if (authLoading) {
+    return (
+      <div className="payment-page">
+        <Navbar />
+        <div className="payment-container">
+          <div className="loading-state">
+            <div className="spinner"></div>
+            <p>Loading...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Don't render if not authenticated (will redirect)
+  if (!isAuthenticated) {
+    return null
   }
 
   return (

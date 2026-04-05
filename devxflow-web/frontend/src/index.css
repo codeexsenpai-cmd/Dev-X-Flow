@@ -2533,7 +2533,6 @@ body {
   background: var(--bg-primary);
   color: var(--text-primary);
   min-height: calc(100vh - 60px);
-  padding: 40px 20px;
 }
 
 .payment-container {
@@ -2900,6 +2899,8 @@ body {
   
   .payment-form-container {
     padding: 24px 20px;
+    margin: 0 auto;
+    max-width: 100%;
   }
   
   .plan-card {
@@ -2912,6 +2913,8 @@ body {
   
   .qr-section {
     padding: 20px;
+    margin: 0 auto;
+    max-width: 100%;
   }
   
   .qr-code img {
@@ -2923,15 +2926,17 @@ body {
   .payment-header h1 {
     font-size: 26px;
   }
-  
+
   .payment-form-container {
     padding: 20px 16px;
+    margin: 0 auto;
+    max-width: 100%;
   }
-  
+
   .payment-form .form-group input {
     padding: 12px;
   }
-  
+
   .btn-pay {
     padding: 14px;
     font-size: 15px;

@@ -123,6 +123,50 @@ server.listen(PORT, () => {
     console.log(`  - GET  /api/customers/profile (Customer profile)`);
     console.log(`Admin dashboard: http://localhost:${PORT}/admin`);
     console.log(`================================`);
+    
+    // Self-ping to prevent Render sleep (production only)
+    if (process.env.NODE_ENV === 'production' || process.env.RENDER) {
+        startSelfPing();
+    }
 });
+
+// Self-ping function to keep backend awake on Render free tier
+function startSelfPing() {
+    const https = require('https');
+    const selfUrl = process.env.RENDER_EXTERNAL_URL 
+        ? `${process.env.RENDER_EXTERNAL_URL}/api/health` 
+        : `https://dev-x-flow.onrender.com/api/health`;
+    
+    function getRandomInterval() {
+        const minMinutes = 8;
+        const maxMinutes = 13;
+        const randomMinutes = Math.floor(Math.random() * (maxMinutes - minMinutes + 1)) + minMinutes;
+        return randomMinutes * 60 * 1000;
+    }
+    
+    function selfPing() {
+        const timestamp = new Date().toISOString();
+        console.log(`[Self-Ping] ${timestamp} - Pinging ${selfUrl}`);
+        
+        https.get(selfUrl, (res) => {
+            console.log(`[Self-Ping] Status: ${res.statusCode}`);
+            scheduleNextPing();
+        }).on('error', (err) => {
+            console.error(`[Self-Ping] Error: ${err.message}`);
+            scheduleNextPing();
+        });
+    }
+    
+    function scheduleNextPing() {
+        const interval = getRandomInterval();
+        const minutes = Math.round(interval / 60000);
+        console.log(`[Self-Ping] Next ping in ${minutes} minutes`);
+        setTimeout(selfPing, interval);
+    }
+    
+    console.log('[Self-Ping] Starting keep-alive service (8-13 min intervals)');
+    // Initial ping after 30 seconds (let server fully start)
+    setTimeout(selfPing, 30000);
+}
 
 module.exports = app;
